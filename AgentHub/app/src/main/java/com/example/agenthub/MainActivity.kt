@@ -67,7 +67,6 @@ fun AgentHubScreen() {
     val sharedPrefs = remember { context.getSharedPreferences("AgentHubPrefs", Context.MODE_PRIVATE) }
     
     val agents = listOf(
-        Agent("antigravity", "Antigravity", "A"),
         Agent("codex", "Codex", "C"),
         Agent("opencode", "OpenCode", "O"),
         Agent("windsurf", "Windsurf", "W"),
@@ -85,10 +84,13 @@ fun AgentHubScreen() {
     // Config states
     var serverUrl by remember { mutableStateOf(sharedPrefs.getString("SERVER_URL", "ws://192.168.100.13:3001") ?: "") }
     var codexSession by remember { mutableStateOf(sharedPrefs.getString("CODEX_SESSION", "") ?: "") }
-    var geminiSession by remember { mutableStateOf(sharedPrefs.getString("GEMINI_SESSION", "") ?: "") }
-    var kiroSession by remember { mutableStateOf(sharedPrefs.getString("KIRO_SESSION", "") ?: "") }
-    var windsurfSession by remember { mutableStateOf(sharedPrefs.getString("WINDSURF_SESSION", "") ?: "") }
+    var codexModel by remember { mutableStateOf(sharedPrefs.getString("CODEX_MODEL", "") ?: "") }
     var opencodeSession by remember { mutableStateOf(sharedPrefs.getString("OPENCODE_SESSION", "") ?: "") }
+    var opencodeModel by remember { mutableStateOf(sharedPrefs.getString("OPENCODE_MODEL", "") ?: "") }
+    var windsurfSession by remember { mutableStateOf(sharedPrefs.getString("WINDSURF_SESSION", "") ?: "") }
+    var windsurfModel by remember { mutableStateOf(sharedPrefs.getString("WINDSURF_MODEL", "") ?: "") }
+    var kiroSession by remember { mutableStateOf(sharedPrefs.getString("KIRO_SESSION", "") ?: "") }
+    var kiroModel by remember { mutableStateOf(sharedPrefs.getString("KIRO_MODEL", "") ?: "") }
 
     val listState = rememberLazyListState()
 
@@ -106,10 +108,13 @@ fun AgentHubScreen() {
                 configMsg.put("type", "config")
                 val configObj = JSONObject()
                 configObj.put("CODEX_SESSION", codexSession)
-                configObj.put("GEMINI_SESSION", geminiSession)
-                configObj.put("KIRO_SESSION", kiroSession)
-                configObj.put("WINDSURF_SESSION", windsurfSession)
+                if (codexModel.isNotBlank()) configObj.put("CODEX_MODEL", codexModel)
                 configObj.put("OPENCODE_SESSION", opencodeSession)
+                if (opencodeModel.isNotBlank()) configObj.put("OPENCODE_MODEL", opencodeModel)
+                configObj.put("WINDSURF_SESSION", windsurfSession)
+                if (windsurfModel.isNotBlank()) configObj.put("WINDSURF_MODEL", windsurfModel)
+                configObj.put("KIRO_SESSION", kiroSession)
+                if (kiroModel.isNotBlank()) configObj.put("KIRO_MODEL", kiroModel)
                 configMsg.put("config", configObj)
                 webSocket.send(configMsg.toString())
             }
@@ -186,32 +191,64 @@ fun AgentHubScreen() {
                         OutlinedTextField(
                             value = serverUrl,
                             onValueChange = { serverUrl = it },
-                            label = { Text("Server WS URL") }
+                            label = { Text("Server WS URL") },
+                            placeholder = { Text("Run relay.js for QR code") }
                         )
                         OutlinedTextField(
                             value = codexSession,
                             onValueChange = { codexSession = it },
-                            label = { Text("Codex Session Cookie") }
+                            label = { Text("Codex Session") },
+                            placeholder = { Text("OpenAI key or access_token") },
+                            singleLine = true
                         )
                         OutlinedTextField(
-                            value = geminiSession,
-                            onValueChange = { geminiSession = it },
-                            label = { Text("Gemini Session (__Secure-1PSID)") }
-                        )
-                        OutlinedTextField(
-                            value = kiroSession,
-                            onValueChange = { kiroSession = it },
-                            label = { Text("Kiro Session") }
-                        )
-                        OutlinedTextField(
-                            value = windsurfSession,
-                            onValueChange = { windsurfSession = it },
-                            label = { Text("Windsurf Session") }
+                            value = codexModel,
+                            onValueChange = { codexModel = it },
+                            label = { Text("Codex Model (optional)") },
+                            placeholder = { Text("gpt-5.5, o3, o4-mini...") },
+                            singleLine = true
                         )
                         OutlinedTextField(
                             value = opencodeSession,
                             onValueChange = { opencodeSession = it },
-                            label = { Text("OpenCode Session") }
+                            label = { Text("OpenCode Session") },
+                            placeholder = { Text("Provider key from auth.json") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = opencodeModel,
+                            onValueChange = { opencodeModel = it },
+                            label = { Text("OpenCode Model (optional)") },
+                            placeholder = { Text("gpt-5.5, claude-sonnet-4...") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = windsurfSession,
+                            onValueChange = { windsurfSession = it },
+                            label = { Text("Windsurf Session") },
+                            placeholder = { Text("Codeium / devin token") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = windsurfModel,
+                            onValueChange = { windsurfModel = it },
+                            label = { Text("Windsurf Model (optional)") },
+                            placeholder = { Text("gpt-4o, claude-3.5...") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = kiroSession,
+                            onValueChange = { kiroSession = it },
+                            label = { Text("Kiro Session") },
+                            placeholder = { Text("JSON: {\"accessKeyId\":...") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = kiroModel,
+                            onValueChange = { kiroModel = it },
+                            label = { Text("Kiro Model (optional)") },
+                            placeholder = { Text("anthropic.claude-3-5-sonnet...") },
+                            singleLine = true
                         )
                     }
                 }
@@ -221,10 +258,13 @@ fun AgentHubScreen() {
                     sharedPrefs.edit()
                         .putString("SERVER_URL", serverUrl)
                         .putString("CODEX_SESSION", codexSession)
-                        .putString("GEMINI_SESSION", geminiSession)
-                        .putString("KIRO_SESSION", kiroSession)
-                        .putString("WINDSURF_SESSION", windsurfSession)
+                        .putString("CODEX_MODEL", codexModel)
                         .putString("OPENCODE_SESSION", opencodeSession)
+                        .putString("OPENCODE_MODEL", opencodeModel)
+                        .putString("WINDSURF_SESSION", windsurfSession)
+                        .putString("WINDSURF_MODEL", windsurfModel)
+                        .putString("KIRO_SESSION", kiroSession)
+                        .putString("KIRO_MODEL", kiroModel)
                         .apply()
                     showSettings = false
                     connectWs()

@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y curl unzip git ca-certificates && rm -r
 # Install Codex CLI globally
 RUN npm install -g @openai/codex
 
-# Install OpenCode binary
-RUN curl -fsSL https://get.opencode.ai | sh || true
+# Install OpenCode binary (non-interactive)
+RUN curl -fsSL https://get.opencode.ai | sh
 
 # Create app directory
 WORKDIR /app
@@ -19,4 +19,5 @@ COPY . .
 
 EXPOSE 3001
 
+# Default: start server; override with "node relay.js" for desktop relay
 CMD ["node", "server.js"]

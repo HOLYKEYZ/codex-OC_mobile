@@ -61,6 +61,7 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.compose.material3)
+  implementation("androidx.compose.material:material-icons-core")
   // Tooling
   debugImplementation(libs.androidx.compose.ui.tooling)
   // Instrumented tests
@@ -77,10 +78,7 @@ dependencies {
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
 
-  // Navigation
-  implementation(libs.androidx.navigation3.ui)
-  implementation(libs.androidx.navigation3.runtime)
-  implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+  // Navigation3 (unused — kept for future)
 
   // WebSockets & Async
   implementation("com.squareup.okhttp3:okhttp:4.12.0")

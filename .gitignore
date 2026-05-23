@@ -1,0 +1,15 @@
+node_modules/
+*.log
+*.apk
+*.aab
+*.dex
+*.class
+*.iml
+.idea/
+.gradle/
+build/
+local.properties
+.cxx/
+*.hprof
+.DS_Store
+Thumbs.db
