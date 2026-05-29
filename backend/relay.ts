@@ -79,6 +79,11 @@ function openCodexDesktopThread(sessionId, clientId) {
   if (clientId) send({ type: 'status', clientId, content: 'Opening Codex Desktop chat' });
 }
 
+function scheduleCodexDesktopRefresh(sessionId, clientId, delayMs = 0) {
+  if (!sessionId || process.env.AGENTHUB_OPEN_CODEX_DESKTOP === '0') return;
+  setTimeout(() => openCodexDesktopThread(sessionId, clientId), delayMs).unref?.();
+}
+
 function buildWindowsCommandLine(cmd, args) {
   return [quoteCmdArg(cmd), ...args.map(quoteCmdArg)].join(' ');
 }
@@ -883,6 +888,7 @@ function handleCodexAppNotification(method, params) {
   if (method === 'turn/started') {
     tracker.turnId = params.turn?.id || tracker.turnId || params.turnId;
     sendToCodexTracker(tracker, { type: 'status', content: 'Codex turn started' });
+    scheduleCodexDesktopRefresh(tracker.threadId, null, 250);
     return;
   }
 
@@ -950,6 +956,7 @@ function handleCodexAppNotification(method, params) {
       sendToCodexTracker(tracker, { type: 'done', content: '' });
       tracker.resolve?.();
     }
+    scheduleCodexDesktopRefresh(tracker.threadId, null, 500);
     activeCodexByThread.delete(params.threadId);
   }
 }
@@ -1256,6 +1263,7 @@ async function sendCodexAppPrompt(prompt, clientId, sessionId) {
   send({ type: 'status', clientId, content: `Opening Codex chat ${sessionId}` });
   console.log(`  [codex-app] resume ${sessionId}`);
   const resumed = await callCodexApp('thread/resume', { threadId: sessionId }, 60000);
+  scheduleCodexDesktopRefresh(sessionId, clientId, 250);
   const thread = resumed?.thread || {};
   const turns = await listCodexAppTurns(sessionId, 12).catch(() => thread.turns || []);
   const activeTurn = [...(turns || [])].reverse().find((turn) => turn?.status === 'inProgress' || turn?.status?.type === 'inProgress');

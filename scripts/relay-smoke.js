@@ -14,6 +14,8 @@ const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS || 45000);
 const executeOpenCode = process.env.SMOKE_EXECUTE_OPENCODE === '1' || process.argv.includes('--execute-opencode');
 const openCodeExpected = process.env.SMOKE_OPENCODE_EXPECT || 'AGENTHUB_SMOKE_OK';
 const openCodePrompt = process.env.SMOKE_OPENCODE_PROMPT || `Agent Hub relay smoke test: reply with exactly ${openCodeExpected}.`;
+const attachSmokeFile = process.env.SMOKE_ATTACH_FILE === '1' || process.argv.includes('--attach-file');
+const attachmentText = process.env.SMOKE_ATTACHMENT_TEXT || `Agent Hub smoke attachment ${openCodeExpected}`;
 
 if (!relayCode) {
   console.error('Usage: node scripts/relay-smoke.js <server-url> <relay-code>');
@@ -46,7 +48,7 @@ function connectPhone(label) {
       selectedCodex: null,
       codexDetail: null,
       opencodeSessions: null,
-      opencodeExecution: executeOpenCode ? { selected: null, statuses: [], output: '', done: false } : null,
+      opencodeExecution: executeOpenCode ? { selected: null, statuses: [], output: '', done: false, attachmentSaved: false } : null,
     };
 
     function send(payload) {
@@ -111,12 +113,23 @@ function connectPhone(label) {
           return;
         }
         state.opencodeExecution.selected = { id: selected.id, title: selected.title };
-        send({ agent: 'opencode', sessionId: selected.id, prompt: openCodePrompt });
+        const payload = { agent: 'opencode', sessionId: selected.id, prompt: openCodePrompt };
+        if (attachSmokeFile) {
+          const data = Buffer.from(attachmentText, 'utf8');
+          payload.attachments = [{
+            name: 'agenthub-smoke.txt',
+            mime: 'text/plain',
+            base64: data.toString('base64'),
+            size: data.length,
+          }];
+        }
+        send(payload);
         return;
       }
 
       if (executeOpenCode && msg.type === 'status') {
         state.opencodeExecution?.statuses.push(msg.content || '');
+        if (msg.content?.startsWith('file: saved upload ')) state.opencodeExecution.attachmentSaved = true;
         return;
       }
 
@@ -161,6 +174,7 @@ function summarize(result) {
       statusCount: result.opencodeExecution.statuses.length,
       done: result.opencodeExecution.done,
       output: result.opencodeExecution.output,
+      attachmentSaved: result.opencodeExecution.attachmentSaved,
     } : null,
   };
 }
@@ -187,10 +201,13 @@ function summarize(result) {
       if (!summary.opencodeExecution?.output?.includes(openCodeExpected)) {
         failures.push(`${label}: OpenCode output did not include ${openCodeExpected}`);
       }
+      if (attachSmokeFile && !summary.opencodeExecution?.attachmentSaved) {
+        failures.push(`${label}: relay did not report saved attachment`);
+      }
     }
   }
 
-  console.log(JSON.stringify({ serverUrl, relayCode, executeOpenCode, first: firstSummary, reconnect: secondSummary }, null, 2));
+  console.log(JSON.stringify({ serverUrl, relayCode, executeOpenCode, attachSmokeFile, first: firstSummary, reconnect: secondSummary }, null, 2));
   if (failures.length) {
     console.error(`Relay smoke failed:\n- ${failures.join('\n- ')}`);
     process.exit(1);

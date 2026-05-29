@@ -200,6 +200,7 @@ fun AgentHubScreen(initialDeepLink: String = "") {
     var hasPausedOnce by remember { mutableStateOf(false) }
     var attachments by remember { mutableStateOf(listOf<PendingAttachment>()) }
     var promptRunning by remember { mutableStateOf(false) }
+    var promptInFlight by remember { mutableStateOf(false) }
     var lastConnectAttemptAt by remember { mutableStateOf(0L) }
     var showTechnicalEvents by remember { mutableStateOf(prefs.getBoolean("SHOW_TECHNICAL_EVENTS", false)) }
     var stickToBottom by remember { mutableStateOf(true) }
@@ -582,7 +583,8 @@ fun AgentHubScreen(initialDeepLink: String = "") {
                                 val chatLogs = detailMessageLogs(messages)
                                 val extras = if (showTechnicalEvents) detailExtraLogs(detail, System.currentTimeMillis() + 10000) else emptyList()
                                 if (chatLogs.isNotEmpty() || extras.isNotEmpty()) logs = chatLogs + extras
-                                promptRunning = detail?.optString("status") == "active"
+                                val detailActive = detail?.optString("status") == "active"
+                                promptRunning = detailActive || promptInFlight
                             }
                             "config_updated" -> {
                                 val cfg = json.optJSONObject("config")
@@ -605,15 +607,17 @@ fun AgentHubScreen(initialDeepLink: String = "") {
                                 if (lower.contains("starting") || lower.contains("steering") || lower.contains("working") || lower.contains("codex started")) {
                                     promptRunning = true
                                 } else if (lower.contains("finished") || lower.contains("completed") || lower.contains("exited")) {
-                                    promptRunning = false
+                                    if (!promptInFlight) promptRunning = false
                                 }
                                 statusForPhone(content)?.let { appendLog(it) }
                             }
                             "done" -> {
+                                promptInFlight = false
                                 promptRunning = false
                                 val c = json.optString("content"); if (c.isNotBlank()) logs = logs + LogLine(System.currentTimeMillis(), c)
                             }
                             "error" -> {
+                                promptInFlight = false
                                 promptRunning = false
                                 logs = logs + LogLine(System.currentTimeMillis(), "Error: ${json.optString("content")}")
                             }
@@ -720,6 +724,7 @@ fun AgentHubScreen(initialDeepLink: String = "") {
                 j.put("attachments", arr)
             }
             if (webSocket?.send(j.toString()) == true) {
+                promptInFlight = true
                 promptRunning = true
                 input = ""
                 attachments = emptyList()

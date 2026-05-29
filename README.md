@@ -50,6 +50,12 @@ cd AgentHub
 
 The APK is written to `AgentHub/app/build/outputs/apk/debug/app-debug.apk`.
 
+On Windows with USB debugging enabled, install the current debug APK directly:
+
+```powershell
+.\scripts\install-debug-apk.ps1 -Rebuild
+```
+
 ### 3. Start the laptop relay
 
 ```bash
@@ -105,12 +111,21 @@ $env:SMOKE_EXECUTE_OPENCODE="1"
 node .\scripts\relay-smoke.js
 ```
 
+To include a small text attachment in that OpenCode prompt smoke:
+
+```powershell
+$env:SMOKE_ATTACH_FILE="1"
+node .\scripts\relay-smoke.js
+```
+
 ## Agents
 
 | Agent | How it is driven |
 |-------|------------------|
 | Codex | Local `codex app-server` API first; CLI JSON resume only if explicitly enabled with `AGENTHUB_CODEX_CLI_FALLBACK=1` |
 | OpenCode | Local `opencode serve` HTTP API on `127.0.0.1:4096` |
+
+`backend/relay.ts` is the relay source file. `backend/relay.js` is only the compatibility launcher used by `node relay.js`; it builds/loads `backend/dist/relay.js`.
 
 ## Environment
 

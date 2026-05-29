@@ -3,6 +3,7 @@ backend/dist/
 backend/relay-state.json
 backend/sessions.json
 .agenthub_probe/
+.agenthub_uploads/
 *.log
 *.apk
 *.aab
